@@ -1,0 +1,6 @@
+timestamp,source_ip,user,host,event_type,severity,description
+2026-06-12 10:15:22,192.168.1.10,admin,WIN-01,Failed Login,High,Multiple failed login attempts detected
+2026-06-12 10:20:11,192.168.1.15,john,WIN-02,PowerShell Execution,Medium,Encoded PowerShell command executed
+2026-06-12 10:25:45,192.168.1.20,system,WIN-03,Privilege Escalation,Critical,New admin user created
+2026-06-12 10:30:10,192.168.1.25,mary,WIN-04,Suspicious Process,High,rundll32.exe executed from temp directory
+2026-06-12 10:35:10,192.168.1.30,test,WIN-05,Failed Login,High,Multiple authentication failures
