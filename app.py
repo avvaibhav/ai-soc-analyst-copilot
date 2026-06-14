@@ -10,15 +10,21 @@ st.set_page_config(page_title="AI SOC Analyst Copilot", layout="wide")
 
 st.title("AI-Powered SOC Analyst Copilot")
 st.write(
-    "Upload SIEM alerts, analyze suspicious activity, map events to MITRE ATT&CK, "
-    "and generate AI-assisted incident investigation reports using a free Groq-hosted LLM."
+    "Upload SIEM alerts, map events to MITRE ATT&CK, and generate AI-assisted incident reports."
 )
 
-api_key = os.getenv("GROQ_API_KEY")
+def get_groq_api_key():
+    api_key = os.getenv("GROQ_API_KEY")
 
-if not api_key:
-    api_key = st.sidebar.text_input("Enter Groq API Key", type="password")
+    if not api_key:
+        try:
+            api_key = st.secrets["GROQ_API_KEY"]
+        except Exception:
+            api_key = None
 
+    return api_key
+
+api_key = get_groq_api_key()
 client = Groq(api_key=api_key) if api_key else None
 
 uploaded_file = st.file_uploader("Upload SIEM Alert CSV", type=["csv"])
@@ -32,8 +38,9 @@ def map_mitre(event_type):
         "New Admin User": "T1098 - Account Manipulation",
         "Encoded Command": "T1027 - Obfuscated Files or Information",
         "Malware Alert": "T1204 - User Execution",
-        "Ransomware Activity": "T1486 - Data Encrypted for Impact"
+        "Ransomware Activity": "T1486 - Data Encrypted for Impact",
     }
+
     return mitre_map.get(event_type, "Unknown - Needs Analyst Review")
 
 def generate_ai_report(alert_data):
@@ -63,14 +70,14 @@ SIEM Alert Data:
         messages=[
             {
                 "role": "system",
-                "content": "You are an expert SOC analyst specializing in SIEM alert triage, threat hunting, incident response, and MITRE ATT&CK mapping."
+                "content": "You are an expert SOC analyst specializing in SIEM alert triage, threat hunting, incident response, and MITRE ATT&CK mapping.",
             },
             {
                 "role": "user",
-                "content": prompt
-            }
+                "content": prompt,
+            },
         ],
-        temperature=0.3
+        temperature=0.3,
     )
 
     return response.choices[0].message.content
@@ -79,8 +86,13 @@ if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
     required_columns = [
-        "timestamp", "source_ip", "user", "host",
-        "event_type", "severity", "description"
+        "timestamp",
+        "source_ip",
+        "user",
+        "host",
+        "event_type",
+        "severity",
+        "description",
     ]
 
     missing_columns = [column for column in required_columns if column not in df.columns]
@@ -96,7 +108,10 @@ if uploaded_file:
         col1, col2, col3, col4 = st.columns(4)
 
         col1.metric("Total Alerts", len(df))
-        col2.metric("High/Critical Alerts", len(df[df["severity"].isin(["High", "Critical"])]))
+        col2.metric(
+            "High/Critical Alerts",
+            len(df[df["severity"].isin(["High", "Critical"])]),
+        )
         col3.metric("Unique Hosts", df["host"].nunique())
         col4.metric("Unique Users", df["user"].nunique())
 
@@ -112,7 +127,7 @@ if uploaded_file:
                     "user",
                     "event_type",
                     "severity",
-                    "MITRE Technique"
+                    "MITRE Technique",
                 ]
             ]
         )
@@ -121,7 +136,7 @@ if uploaded_file:
 
         if st.button("Generate AI Incident Report"):
             if not client:
-                st.error("Groq API key is missing.")
+                st.error("Groq API key is missing. Add it in .env locally or Streamlit Secrets online.")
             else:
                 with st.spinner("Generating AI incident report..."):
                     alert_text = df.to_string(index=False)
@@ -134,7 +149,7 @@ if uploaded_file:
                     label="Download Incident Report",
                     data=report,
                     file_name="ai_incident_report.txt",
-                    mime="text/plain"
+                    mime="text/plain",
                 )
 else:
     st.info("Upload a SIEM alert CSV file to begin investigation.")
